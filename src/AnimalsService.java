@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -5,19 +6,36 @@ import java.util.ArrayList;
  */
 public class AnimalsService {
 
-    private ArrayList<Animal> animals = new ArrayList<>();
+    private AnimalRepository fileWithAnimalInfo;
+
+    public AnimalsService(AnimalRepository fileWithAnimalInfo) {
+        this.fileWithAnimalInfo = fileWithAnimalInfo;
+    }
 
     public ArrayList<Animal> listAnimals() {
-        return animals;
+        return fileWithAnimalInfo.listAnimals();
     }
 
-    // Creates a new Animal and adds it to the list
+
     public void createAnimal(String name, String species, String breed, String description) {
-        this.animals.add(new Animal(name, species, breed, description));
+        try {
+            fileWithAnimalInfo.createAnimal(new Animal(name, species, breed, description));
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
     }
+
 
     public void removeAnAnimal(int index) {
-        animals.remove(index);
+        try {
+            fileWithAnimalInfo.removeAnAnimal(index);
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public Animal getAnimal(int index) {
+        return fileWithAnimalInfo.getAnimal(index);
     }
 
 }
