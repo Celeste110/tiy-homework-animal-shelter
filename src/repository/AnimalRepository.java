@@ -1,5 +1,8 @@
+package repository;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import entity.Animal;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -38,13 +41,13 @@ public class AnimalRepository {
         return animals;
     }
 
-    // Creates a new Animal and adds it to the list
+    // Creates a new entity.Animal and adds it to the list
     public void createAnimal(Animal animal) throws IOException {
         animals.add(animal);
         persists();  // Must update the repository since info is being modified (added)
     }
 
-    // Removes an Animal from the list
+    // Removes an entity.Animal from the list
     public void removeAnAnimal(int index) throws IOException {
         animals.remove(index);
         persists(); // Must update the repository since info is being modified (deleted)
@@ -54,4 +57,23 @@ public class AnimalRepository {
         return animals.get(index);
     }
 
+    public void modifyAnimal(int index, String property, String newInput) throws IOException
+    {
+        Animal a = getAnimal(index);
+        switch (property){
+            case "name":
+                a.setName(newInput);
+                break;
+            case "species":
+                a.setSpecies(newInput);
+                break;
+            case "breed":
+                a.setBreed(newInput);
+                break;
+            case "description":
+                a.setDescription(newInput);
+                break;
+        }
+        persists();
+    }
 }

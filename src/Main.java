@@ -1,3 +1,7 @@
+import repository.AnimalRepository;
+import service.AnimalsService;
+import service.MenuService;
+
 import java.io.IOException;
 
 /**
@@ -13,8 +17,7 @@ public class Main {
             e.printStackTrace();
         }
 
-        AnimalsService service = new AnimalsService(animalRepository);
-        MenuService menu = new MenuService();
+        MenuService menu = new MenuService(new AnimalsService(animalRepository));
 
         boolean repeatMenuOptions = true;
 
@@ -25,23 +28,23 @@ public class Main {
             {
                 switch (userSelection) {
                     case MenuService.LIST_ANIMALS:
-                        menu.displayAnimalsList(service);
+                        menu.displayAnimalsList();
                         break;
 
                     case MenuService.CREATE_ANIMAL:
-                        menu.promptForAnimalData(service);
+                        menu.promptForAnimalData();
                         break;
 
                     case MenuService.VIEW_ANIMAL_DETAILS:
-                        menu.getAnimal(service, menu);
+                        menu.getAnimal();
                         break;
 
                     case MenuService.EDIT_ANIMAL:
-                        menu.editAnimal(service, menu);
+                        menu.editAnimal();
                         break;
 
                     case MenuService.DELETE_ANIMAL:
-                        menu.deleteAnimal(service, menu);
+                        menu.deleteAnimal();
                         break;
 
                     case MenuService.EXIT_PROGRAM:

@@ -1,3 +1,5 @@
+package service;
+import entity.Animal;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -13,6 +15,13 @@ public class MenuService {
     public static final int EDIT_ANIMAL = 4;
     public static final int DELETE_ANIMAL = 5;
     public static final int EXIT_PROGRAM = 6;
+
+    AnimalsService service;
+
+    public MenuService(AnimalsService service)
+    {
+        this.service = service;
+    }
 
 
     public int promptForMainMenuSelection() {
@@ -51,7 +60,7 @@ public class MenuService {
     }
 
 
-    public void displayAnimalsList(AnimalsService service) {
+    public void displayAnimalsList() {
 
         if (service.listAnimals().size() == 0) {
             System.out.println("You haven't added any animals yet!\n\nSelect option 2 to add an animal to the list.");
@@ -70,14 +79,14 @@ public class MenuService {
     }
 
 
-    public void promptForAnimalData(AnimalsService service) {
+    public void promptForAnimalData() {
         String name, species, breed, description;
 
         System.out.println("-- Create an Animal --");
         System.out.println("\nPlease answer the following questions.");
 
         System.out.print("\nAnimal Name: ");
-        name = retrieveAnimalInfoFromUser("Animal Name");
+        name = retrieveAnimalInfoFromUser("entity.Animal Name");
 
         System.out.print("Species: ");
         species = retrieveAnimalInfoFromUser("Species");
@@ -89,7 +98,7 @@ public class MenuService {
         description = retrieveAnimalInfoFromUser("Description");
 
         System.out.println("\nSuccess: The animal has been created!");
-        //create an Animal instance and add the new animal to an ArrayList
+        //create an entity.Animal instance and add the new animal to an ArrayList
         service.createAnimal(name, species, breed, description);
 
     }
@@ -178,7 +187,7 @@ public class MenuService {
         }
     }
 
-    public boolean confirmDelete(int index, AnimalsService service, MenuService menu) {
+    public boolean confirmDelete(int index) {
         System.out.print("\nAre you sure you want to delete this animal? (Yes/No): ");
 
         Scanner reader = new Scanner(System.in);
@@ -189,7 +198,7 @@ public class MenuService {
             System.out.println("\nSuccess: The animal has been deleted!");
             return false;
         } else if (readString.equalsIgnoreCase("no")) {
-            deleteAnimal(service, menu);
+            deleteAnimal();
             return true;
         } else {
             System.out.println("\nError: Sorry, that isn't a valid option. Must type \"Yes\" or \"No\".");
@@ -199,9 +208,9 @@ public class MenuService {
     }
 
     // Retrieves an animal from a position on the list and prints the info to the console
-    public void getAnimal(AnimalsService service, MenuService menu) {
+    public void getAnimal() {
         System.out.println("-- View an Animal --\n");
-        int userSelection = menu.waitForInt("What is the numeric ID of the animal you want to view?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
+        int userSelection = waitForInt("What is the numeric ID of the animal you want to view?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
 
         ArrayList<Animal> animals = service.listAnimals();
 
@@ -216,28 +225,28 @@ public class MenuService {
         }
     }
 
-    public void editAnimal(AnimalsService service, MenuService menu) {
+    public void editAnimal() {
         System.out.println("-- Edit an Animal --");
-        int userSelection = menu.waitForInt("\nWhat is the numeric ID of the animal you want to edit?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
+        int userSelection = waitForInt("\nWhat is the numeric ID of the animal you want to edit?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
         String userInput;
 
         if (userSelection <= service.listAnimals().size() - 1 && userSelection >= 0) {
             System.out.println("Please answer the following questions. Press enter to keep the current value.");
             System.out.printf("\nAnimal Name [%s]: ", service.getAnimal(userSelection).getName());
-            userInput = menu.validateAndSetUserInputForAnimal("Enter non-numeric Animal Name: ", service.getAnimal(userSelection).getName());
-            service.getAnimal(userSelection).setName(userInput);
+            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Animal Name: ", service.getAnimal(userSelection).getName());
+            service.modifyAnimal(userSelection, "name", userInput );
 
             System.out.printf("Species [%s]: ", service.getAnimal(userSelection).getSpecies());
-            userInput = menu.validateAndSetUserInputForAnimal("Enter non-numeric Species: ", service.getAnimal(userSelection).getSpecies());
-            service.getAnimal(userSelection).setSpecies(userInput);
+            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Species: ", service.getAnimal(userSelection).getSpecies());
+            service.modifyAnimal(userSelection, "species", userInput );
 
             System.out.printf("Breed (optional) [%s]: ", service.getAnimal(userSelection).getBreed());
-            userInput = menu.validateAndSetUserInputForAnimal("Enter non-numeric Breed (optional): ", service.getAnimal(userSelection).getBreed());
-            service.getAnimal(userSelection).setBreed(userInput);
+            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Breed (optional): ", service.getAnimal(userSelection).getBreed());
+            service.modifyAnimal(userSelection, "breed", userInput );
 
             System.out.printf("Description [%s]: ", service.getAnimal(userSelection).getDescription());
-            userInput = menu.validateAndSetUserInputForAnimal("Enter non-numeric Description: ", service.getAnimal(userSelection).getDescription());
-            service.getAnimal(userSelection).setDescription(userInput);
+            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Description: ", service.getAnimal(userSelection).getDescription());
+            service.modifyAnimal(userSelection, "description", userInput );
 
             System.out.println("\nSuccess: The animal has been updated!\n");
 
@@ -248,18 +257,18 @@ public class MenuService {
         } else {
             System.out.printf("You haven't added enough animals! You currently have %s animals in the list.\n", service.listAnimals().size());
             System.out.println("\nReturning you to the main menu so you can add more animals (or select another option...");
-        }
+        } //***NEED TO SAVE CHANGES TO DISK****
     }
 
-    public void deleteAnimal(AnimalsService service, MenuService menu) {
-        int userSelection = menu.waitForInt("What is the numeric ID of the animal you want to delete?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
+    public void deleteAnimal() {
+        int userSelection = waitForInt("What is the numeric ID of the animal you want to delete?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
 
         if (userSelection <= service.listAnimals().size() - 1 && userSelection >= 0) {
             System.out.println("Name: " + service.getAnimal(userSelection).getName());
             System.out.println("Species: " + service.getAnimal(userSelection).getSpecies());
             System.out.println("Breed: " + service.getAnimal(userSelection).getBreed());
             System.out.println("Description: " + service.getAnimal(userSelection).getDescription());
-            menu.confirmDelete(userSelection, service, menu);
+            confirmDelete(userSelection);
         } else {
             System.out.printf("You haven't added enough animals! You currently have %s animals in the list.\n", service.listAnimals().size());
             System.out.println("\nReturning you to the main menu so you can add more animals (or select another option...");

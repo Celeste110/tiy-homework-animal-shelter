@@ -1,3 +1,8 @@
+package service;
+
+import entity.Animal;
+import repository.AnimalRepository;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -36,6 +41,15 @@ public class AnimalsService {
 
     public Animal getAnimal(int index) {
         return fileWithAnimalInfo.getAnimal(index);
+    }
+
+    public void modifyAnimal(int index, String property, String newInput)
+    {
+        try {
+            fileWithAnimalInfo.modifyAnimal(index, property, newInput);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
