@@ -1,8 +1,6 @@
 package service;
-
 import entity.Animal;
 import repository.AnimalRepository;
-
 import java.io.IOException;
 import java.util.ArrayList;
 
