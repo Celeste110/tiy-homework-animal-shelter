@@ -1,6 +1,12 @@
 package service;
+
 import entity.Animal;
+import entity.AnimalNotes;
+
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Scanner;
 
 /**
@@ -9,17 +15,14 @@ import java.util.Scanner;
  */
 
 public class MenuService {
-    public static final int LIST_ANIMALS = 1;
-    public static final int CREATE_ANIMAL = 2;
-    public static final int VIEW_ANIMAL_DETAILS = 3;
-    public static final int EDIT_ANIMAL = 4;
-    public static final int DELETE_ANIMAL = 5;
-    public static final int EXIT_PROGRAM = 6;
+    public static final int CREATE_ANIMAL = 1;
+    public static final int MANAGE_ANIMAL = 2;
+    public static final int MANAGE_ANIMAL_TYPES = 3;
+    public static final int EXIT_PROGRAM = 4;
 
     AnimalsService service;
 
-    public MenuService(AnimalsService service)
-    {
+    public MenuService(AnimalsService service) {
         this.service = service;
     }
 
@@ -27,12 +30,10 @@ public class MenuService {
     public int promptForMainMenuSelection() {
         System.out.println("\n-- Main Menu --\n" +
                 "\n" +
-                "1) List animals\n" +
-                "2) Create an animal\n" +
-                "3) View animal details\n" +
-                "4) Edit an animal\n" +
-                "5) Delete an animal\n" +
-                "6) Quit\n");
+                "1) Add an animal\n" +
+                "2) Manage an animal\n" +
+                "3) Manage animal types\n" +
+                "4) Quit\n");
 
         return waitForInt("Please choose an option: ");
     }
@@ -59,37 +60,29 @@ public class MenuService {
         return aNum;
     }
 
-
-    public void displayAnimalsList() {
-
-        if (service.listAnimals().size() == 0) {
-            System.out.println("You haven't added any animals yet!\n\nSelect option 2 to add an animal to the list.");
-        } else {
-
-            int counter = 0;
-            System.out.println("-- List of Animals --\n");
-
-            while (counter < service.listAnimals().size()) {
-                String name = service.listAnimals().get(counter).getName();
-                String type = service.listAnimals().get(counter).getSpecies();
-                System.out.printf("%s) %s \t %s\n", ++counter, name, type);
-            }
-            System.out.println();
-        }
-    }
-
-
-    public void promptForAnimalData() {
+    public void promptForAnimalData() throws IOException, SQLException {
         String name, species, breed, description;
 
         System.out.println("-- Create an Animal --");
         System.out.println("\nPlease answer the following questions.");
 
         System.out.print("\nAnimal Name: ");
-        name = retrieveAnimalInfoFromUser("entity.Animal Name");
+        name = retrieveAnimalInfoFromUser("Name");
 
-        System.out.print("Species: ");
+        System.out.print("Type (ex. Cat, Dog, Bird): ");
         species = retrieveAnimalInfoFromUser("Species");
+        while (validateTypeInput(species) == false) {
+            System.out.println("\nError: Please choose from an existing animal type.\n");
+            System.out.println("Animal Types:");
+            System.out.println("--------------");
+            for (String type : service.getTypeService().listTypes()) {
+                System.out.println(type);
+            }
+            System.out.println("--------------");
+            System.out.print("\nType: ");
+            species = retrieveAnimalInfoFromUser("Species");
+
+        }
 
         System.out.print("Breed (optional): ");
         breed = retrieveAnimalInfoFromUser("Breed (optional)");
@@ -97,10 +90,26 @@ public class MenuService {
         System.out.print("Description: ");
         description = retrieveAnimalInfoFromUser("Description");
 
+
+        int speciesID = service.getTypeService().getTypeID(species);
+
         System.out.println("\nSuccess: The animal has been created!");
         //create an entity.Animal instance and add the new animal to an ArrayList
-        service.createAnimal(name, species, breed, description);
+        service.createAnimal(name, speciesID, breed, description, generateUniqueID(), service.getNoteService().listNotes());
 
+    }
+
+    public int generateUniqueID() {
+        Random random = new Random();
+        int x = random.nextInt(1000);
+        for (Animal animal : service.listAnimals()) {
+            if (animal.getID() == x) {
+                x = random.nextInt(1000);
+            }
+
+        }
+
+        return x;
     }
 
     public boolean isInteger(String userInput) {
@@ -170,6 +179,15 @@ public class MenuService {
         return readString;
     }
 
+    public boolean validateTypeInput(String input) throws SQLException {
+        for (String type : service.getTypeService().listTypes()) {
+            if (type.toLowerCase().equals(input.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean confirmExit() {
         Scanner reader = new Scanner(System.in);
         System.out.print("Are you sure you want to quit? (Yes/No): ");
@@ -187,7 +205,7 @@ public class MenuService {
         }
     }
 
-    public boolean confirmDelete(int index) {
+    public boolean confirmDelete(int index) throws SQLException {
         System.out.print("\nAre you sure you want to delete this animal? (Yes/No): ");
 
         Scanner reader = new Scanner(System.in);
@@ -196,9 +214,8 @@ public class MenuService {
         if (readString.equalsIgnoreCase("yes")) {
             service.removeAnAnimal(index);
             System.out.println("\nSuccess: The animal has been deleted!");
-            return false;
+            return true;
         } else if (readString.equalsIgnoreCase("no")) {
-            deleteAnimal();
             return true;
         } else {
             System.out.println("\nError: Sorry, that isn't a valid option. Must type \"Yes\" or \"No\".");
@@ -207,71 +224,264 @@ public class MenuService {
         }
     }
 
-    // Retrieves an animal from a position on the list and prints the info to the console
-    public void getAnimal() {
-        System.out.println("-- View an Animal --\n");
-        int userSelection = waitForInt("What is the numeric ID of the animal you want to view?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
+    public boolean manageAnimal() throws SQLException, IOException {
+        System.out.println("1) Type");
+        System.out.println("2) Name");
+        System.out.println("3) ID");
+        System.out.println("4) All animals");
 
-        ArrayList<Animal> animals = service.listAnimals();
+        Scanner reader = new Scanner(System.in);
 
-        if (userSelection <= animals.size() - 1 && userSelection >= 0) {
-            System.out.println("\nName: " + service.getAnimal(userSelection).getName());
-            System.out.println("Species: " + service.getAnimal(userSelection).getSpecies());
-            System.out.println("Breed (optional): " + service.getAnimal(userSelection).getBreed());
-            System.out.println("Description: " + service.getAnimal(userSelection).getDescription());
-        } else {
-            System.out.printf("You haven't added enough animals! You currently have %s animals in the list.\n", service.listAnimals().size());
-            System.out.println("\nReturning you to the main menu so you can add more animals (or select another option...");
+        int userSelection = waitForInt("\nHow do you wish to search?: ");
+
+        ArrayList<Animal> animals;
+
+        ArrayList<Integer> animalIDs = new ArrayList<>();
+
+        switch (userSelection) {
+            case 1:
+                System.out.print("Animal Type (Cat, Dog, Bird, etc.): ");
+                String input = reader.nextLine();
+                while (validateTypeInput(input) == false) {
+                    System.out.println("\nError: Please choose from the list of animal types on file.\n");
+                    System.out.println("Animal Types:");
+                    System.out.println("--------------");
+                    for (String type : service.getTypeService().listTypes()) {
+                        System.out.println(type);
+                    }
+                    System.out.println("--------------");
+                    System.out.print("\nType: ");
+                    input = retrieveAnimalInfoFromUser("Type");
+                }
+                boolean inList = false;
+                for (Animal animal : service.listAnimals()) {
+                    String type = service.getTypeService().getType(animal.getSpecies());
+                    type.toLowerCase();
+                    if (type.equalsIgnoreCase(input)) {
+                        inList = true;
+                    }
+                }
+                if (inList == false) {
+                    System.out.println("\nThere are currently no animals of this type on file.");
+                    return true;
+                } else {
+                    System.out.println("\n-- List of animals --");
+                    animals = service.getAnimalsByType(service.getTypeService().getTypeID(input), service.getNoteService());
+                    System.out.println("\nID\t| Name\t\t\t| Type");
+                    System.out.println("--------------------------------------------");
+                    for (Animal animal : animals) {
+                        animalIDs.add(animal.getID());
+                        animal.toAString();
+                    }
+                }
+                break;
+            case 2:
+                System.out.print("Animal name: ");
+                String name = reader.nextLine();
+                animals = service.getAnimalsByName(name, service.getNoteService());
+                if (animals.size() == 0) {
+                    System.out.println("Sorry! There are no animals named " + name);
+                    System.out.println("Returning you to the main menu....");
+                    return true;
+                } else {
+                    System.out.println("\n-- List of animals --");
+                    System.out.println("\nID\t| Name\t\t\t| Type");
+                    System.out.println("--------------------------------------------");
+                    animalIDs.clear();
+                    for (Animal animal : animals) {
+                        animalIDs.add(animal.getID());
+                        animal.toAString();
+                    }
+                }
+                break;
+            case 3:
+                System.out.print("Animal ID: ");
+                int num = reader.nextInt();
+                System.out.println("\n-- List of animals --");
+                Animal animal = service.getAnimalById(num);
+                if (animal.getID() == -1) {
+                    return true;
+                } else {
+                    System.out.println("\nID\t| Name\t\t\t| Type");
+                    System.out.println("--------------------------------------------");
+                    animal.toAString();
+                }
+                break;
+            case 4:
+                System.out.println("-- List of animals --");
+                System.out.println("\nID\t| Name\t\t\t| Type");
+                System.out.println("--------------------------------------------");
+                animals = service.listAnimals();
+                animalIDs.clear();
+                for (Animal anAnimal : animals) {
+                    animalIDs.add(anAnimal.getID());
+                    anAnimal.toAString();
+                }
+                break;
+            default:
+                System.out.println("Wrong input! Please choose a valid option (1-4):");
+                this.manageAnimal();
+                break;
+        }
+
+
+        System.out.print("\nWhich animal do you want to manage? ");
+        int num = reader.nextInt();
+        boolean isInList = false;
+        for (Integer x : animalIDs) {
+            if (x == num) {
+                isInList = true;
+            }
+        }
+
+        while (isInList == false) {
+            System.out.println("\nSorry! This is not a valid ID.");
+            System.out.print("Please choose an ID from the list of animals above: ");
+            num = reader.nextInt();
+            for (Integer x : animalIDs) {
+                if (x == num) {
+                    isInList = true;
+                }
+            }
+        }
+
+        Animal animal = service.getAnimalById(num);
+
+        if (animal.getID() != -1) {
+            System.out.println("\n-- Animal Details --\n");
+            System.out.println("Name: " + animal.getName());
+            System.out.println("Species: " + animal.getSpecies());
+            System.out.println("Breed: " + animal.getBreed());
+            System.out.println("Description: " + animal.getDescription());
+            System.out.println("Notes: ");
+            for (AnimalNotes note : animal.getNotes()) {
+
+                if (note.getID() == animal.getID())
+                    System.out.println("\t" + note.getDate() + " - " + note.getText());
+            }
+
+            System.out.println("\nPlease select an option: \n");
+            System.out.println("1) Edit animal");
+            System.out.println("2) Delete animal");
+            System.out.println("3) Add note");
+            System.out.print("4) Return to main menu\n");
+
+
+            System.out.print("\nWhat do you want to do? ");
+            int selection = reader.nextInt();
+            switch (selection) {
+                case 1:
+                    this.editAnimal(animal);
+                    break;
+                case 2:
+                    return deleteAnimal(num);
+                case 3:
+                    this.addNote(animal);
+                    return true;
+                case 4:
+                    return true;
+                default:
+                    System.out.println("Not a valid option. Returning you to the main menu...");
+                    break;
+            }
+        }
+        return true;
+    }
+
+    public void addNote(Animal animal) throws IOException, SQLException {
+        System.out.println("-- Add a note --\n");
+
+        Scanner reader = new Scanner(System.in);
+
+        System.out.print("Note Text: ");
+        String noteText = reader.nextLine();
+
+        // add note
+        service.getNoteService().createNote(noteText, animal.getID());
+
+        System.out.println("\nYour note was added!");
+    }
+
+    public void manageAnimalTypes() throws IOException, SQLException {
+        Scanner reader = new Scanner(System.in);
+        System.out.println("1) Add an animal type");
+        System.out.println("2) View all types");
+        System.out.print("\nPlease select option 1 or 2: ");
+        int response = reader.nextInt();
+
+        switch (response) {
+            case 1:
+                System.out.print("\nWhat animal type would you like to add? : ");
+                reader.nextLine();
+                String type = reader.nextLine();
+                service.getTypeService().createType(type.toLowerCase());
+                System.out.println("\nSuccess! The animal type has been created.");
+                break;
+            case 2:
+                ArrayList<String> a = service.getTypeService().listTypes();
+                System.out.println("\nList of all animal types:");
+                System.out.println("---------------");
+                for (String aType : a) {
+                    System.out.println(aType);
+                }
+                break;
+            default:
+                System.out.println("Invald input. Please select either 1 or 2");
+                break;
         }
     }
 
-    public void editAnimal() {
-        System.out.println("-- Edit an Animal --");
-        int userSelection = waitForInt("\nWhat is the numeric ID of the animal you want to edit?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
+    public void editAnimal(Animal animal) throws SQLException, IOException {
         String userInput;
+        System.out.println("\nPlease answer the following questions. Press enter to keep the current value.");
+        System.out.printf("\nAnimal Name [%s]: ", animal.getName());
+        userInput = validateAndSetUserInputForAnimal("Enter non-numeric Animal Name: ", animal.getName());
+        service.modifyAnimal("name", userInput, animal);
 
-        if (userSelection <= service.listAnimals().size() - 1 && userSelection >= 0) {
-            System.out.println("Please answer the following questions. Press enter to keep the current value.");
-            System.out.printf("\nAnimal Name [%s]: ", service.getAnimal(userSelection).getName());
-            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Animal Name: ", service.getAnimal(userSelection).getName());
-            service.modifyAnimal(userSelection, "name", userInput );
+        System.out.printf("Species [%s]: ", service.getTypeService().getType(animal.getSpecies()));
+        userInput = validateAndSetUserInputForAnimal("Enter non-numeric Species: ", service.getTypeService().getType(animal.getSpecies()));
+        while (service.getTypeService().getTypeID(userInput) == -1) {
+            System.out.println("Animal Types:");
+            System.out.println("--------------");
+            for (String type : service.getTypeService().listTypes()) {
+                System.out.println(type);
+            }
+            System.out.println("--------------");
+            System.out.print("\nType: ");
+            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Species: ", service.getTypeService().getType(animal.getSpecies()));
+        }
+        service.modifyAnimal("species", userInput, animal);
 
-            System.out.printf("Species [%s]: ", service.getAnimal(userSelection).getSpecies());
-            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Species: ", service.getAnimal(userSelection).getSpecies());
-            service.modifyAnimal(userSelection, "species", userInput );
+        System.out.printf("Breed (optional) [%s]: ", animal.getBreed());
+        userInput = validateAndSetUserInputForAnimal("Enter non-numeric Breed (optional): ", animal.getBreed());
+        service.modifyAnimal("breed", userInput, animal);
 
-            System.out.printf("Breed (optional) [%s]: ", service.getAnimal(userSelection).getBreed());
-            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Breed (optional): ", service.getAnimal(userSelection).getBreed());
-            service.modifyAnimal(userSelection, "breed", userInput );
+        System.out.printf("Description [%s]: ", animal.getDescription());
+        userInput = validateAndSetUserInputForAnimal("Enter non-numeric Description: ", animal.getDescription());
+        service.modifyAnimal("description", userInput, animal);
 
-            System.out.printf("Description [%s]: ", service.getAnimal(userSelection).getDescription());
-            userInput = validateAndSetUserInputForAnimal("Enter non-numeric Description: ", service.getAnimal(userSelection).getDescription());
-            service.modifyAnimal(userSelection, "description", userInput );
+        System.out.println("\nSuccess: The animal has been updated!\n");
 
-            System.out.println("\nSuccess: The animal has been updated!\n");
-
-            System.out.println("Name: " + service.getAnimal(userSelection).getName());
-            System.out.println("Species: " + service.getAnimal(userSelection).getSpecies());
-            System.out.println("Breed: " + service.getAnimal(userSelection).getBreed());
-            System.out.println("Description: " + service.getAnimal(userSelection).getDescription());
-        } else {
-            System.out.printf("You haven't added enough animals! You currently have %s animals in the list.\n", service.listAnimals().size());
-            System.out.println("\nReturning you to the main menu so you can add more animals (or select another option...");
-        } //***NEED TO SAVE CHANGES TO DISK****
+        System.out.println("Name: " + animal.getName());
+        System.out.println("Species: " + animal.getSpecies());
+        System.out.println("Breed: " + animal.getBreed());
+        System.out.println("Description: " + animal.getDescription());
     }
 
-    public void deleteAnimal() {
-        int userSelection = waitForInt("What is the numeric ID of the animal you want to delete?: ") - 1; // subtract 1 (due to zero-indexed ArrayList)
 
-        if (userSelection <= service.listAnimals().size() - 1 && userSelection >= 0) {
-            System.out.println("Name: " + service.getAnimal(userSelection).getName());
-            System.out.println("Species: " + service.getAnimal(userSelection).getSpecies());
-            System.out.println("Breed: " + service.getAnimal(userSelection).getBreed());
-            System.out.println("Description: " + service.getAnimal(userSelection).getDescription());
-            confirmDelete(userSelection);
+    public boolean deleteAnimal(int userSelection) throws SQLException {
+        Animal animal = service.getAnimalById(userSelection);
+
+        if (animal.getID() != -1) {
+            System.out.println("\nName: " + service.getAnimalById(userSelection).getName());
+            System.out.println("Species: " + service.getAnimalById(userSelection).getSpecies());
+            System.out.println("Breed: " + service.getAnimalById(userSelection).getBreed());
+            System.out.println("Description: " + service.getAnimalById(userSelection).getDescription());
+            return confirmDelete(userSelection);
         } else {
             System.out.printf("You haven't added enough animals! You currently have %s animals in the list.\n", service.listAnimals().size());
             System.out.println("\nReturning you to the main menu so you can add more animals (or select another option...");
+            return true;
         }
     }
 }

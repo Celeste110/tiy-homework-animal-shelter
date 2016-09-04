@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal">
+    <data-source name="PostgreSQL - animals@localhost" uuid="6952898a-3e3d-4d03-875e-c9839d3543fd">
+      <secret-storage>master_key</secret-storage>
+      <introspection-scope>animals:public,pg_catalog,</introspection-scope>
+      <resolve-scope>animals:public,</resolve-scope>
+    </data-source>
+  </component>
+</project>

@@ -20,5 +20,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="org.mockito:mockito-all:1.10.19" level="project" />
+    <orderEntry type="library" name="org.postgresql:postgresql:9.4.1209.jre7" level="project" />
   </component>
 </module>

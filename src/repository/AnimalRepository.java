@@ -1,14 +1,11 @@
 package repository;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import entity.Animal;
+import service.NoteService;
+import service.TypeService;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.sql.*;
 import java.util.ArrayList;
 
 
@@ -17,63 +14,145 @@ import java.util.ArrayList;
  */
 public class AnimalRepository {
 
-    private Path filePath;
+    private Connection conn;
+    private TypeService t;
 
-    private ArrayList<Animal> animals = new ArrayList<>();
+    public AnimalRepository(String jdbcUrl, TypeService t) throws SQLException {
+        this.conn = DriverManager.getConnection(jdbcUrl);
+        this.t = t;
+    }
 
-    public AnimalRepository(String fileName) throws IOException {
-        filePath = Paths.get(fileName);
+    // This method returns a set of all animals
+    public ResultSet listAnimal() throws SQLException {
+        Statement stmt = conn.createStatement();
+        return stmt.executeQuery("SELECT * FROM animal");
+    }
 
-        if (Files.exists(filePath)) {
-            String json = new String(Files.readAllBytes(filePath)); // 1, this is our JSON
-            Type listType = new TypeToken<ArrayList<Animal>>() {}.getType(); // 2. this describes the structure of data in the JSON string. Take note of the generics
-            animals = new Gson().fromJson(json, listType); // 3. convert the JSON back to an ArrayList of Animals
+    // Removes an animal from the database
+    public void removeAnimal(int animalID) throws SQLException {
+
+        // create a prepared statement
+        PreparedStatement ps = conn.prepareStatement(
+
+                "DELETE FROM animal " +
+                        "WHERE animal_id = ?"
+        );
+
+        // set parameter values
+        ps.setInt(1, animalID);
+
+        // execute the query
+        ps.executeUpdate();
+
+    }
+
+    // Creates a new Animal and adds it to the list
+    public void createAnimal(Animal anAnimal) throws IOException, SQLException {
+        // create a prepared statement
+        PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO animal" +
+                        "(animal_id, " +
+                        "animal_name, " +
+                        "animal_type_id, " +
+                        "breed, " +
+                        "description) " +
+                        "VALUES(?,?,?,?,?)"
+        );
+
+        // set parameter values
+        ps.setInt(1, anAnimal.getID());
+        ps.setString(2, anAnimal.getName());
+        ps.setInt(3, anAnimal.getSpecies());
+        ps.setString(4, anAnimal.getBreed());
+        ps.setString(5, anAnimal.getDescription());
+
+        // execute the query
+        ps.executeUpdate();
+    }
+
+    public ArrayList<Animal> getAnimalsByType(int typeID, NoteService noteService) throws SQLException {
+        ArrayList<Animal> animals = new ArrayList<>();
+        ResultSet resultSet = this.listAnimal();
+
+        Animal anAnimal;
+
+        while (resultSet.next()) {
+            if (resultSet.getInt("animal_type_id") == typeID) {
+                anAnimal = new Animal(
+                        resultSet.getString("animal_name"),
+                        resultSet.getInt("animal_type_id"),
+                        resultSet.getString("breed"),
+                        resultSet.getString("description"),
+                        resultSet.getInt("animal_id"),
+                        noteService.listNotes(),
+                        t
+
+
+                );
+                animals.add(anAnimal);
+            }
         }
-    }
-
-    private void persists() throws IOException {
-        String json = new Gson().toJson(animals);
-        Files.write(filePath, json.getBytes());
-    }
-
-    // This method returns a list of all animals
-    public ArrayList<Animal> listAnimals() {
         return animals;
     }
 
-    // Creates a new entity.Animal and adds it to the list
-    public void createAnimal(Animal animal) throws IOException {
-        animals.add(animal);
-        persists();  // Must update the repository since info is being modified (added)
+    public ArrayList<Animal> getAnimalsByName(String name, NoteService noteService) throws SQLException {
+        ArrayList<Animal> animals = new ArrayList<>();
+        ResultSet resultSet = this.listAnimal();
+
+        Animal anAnimal = null;
+
+        while (resultSet.next()) {
+            if (resultSet.getString("animal_name").toLowerCase().contains(name.toLowerCase())) {
+                anAnimal = new Animal(
+                        resultSet.getString("animal_name"),
+                        resultSet.getInt("animal_type_id"),
+                        resultSet.getString("breed"),
+                        resultSet.getString("description"),
+                        resultSet.getInt("animal_id"),
+                        noteService.listNotes(),
+                        t
+
+                );
+                animals.add(anAnimal);
+            }
+        }
+        return animals;
     }
 
-    // Removes an entity.Animal from the list
-    public void removeAnAnimal(int index) throws IOException {
-        animals.remove(index);
-        persists(); // Must update the repository since info is being modified (deleted)
-    }
+    public void modifyAnimal(String property, String newInput, Animal anAnimal, int typeID) throws IOException, SQLException {
 
-    public Animal getAnimal(int index) {
-        return animals.get(index);
-    }
-
-    public void modifyAnimal(int index, String property, String newInput) throws IOException
-    {
-        Animal a = getAnimal(index);
-        switch (property){
+        switch (property) {
             case "name":
-                a.setName(newInput);
+                anAnimal.setName(newInput);
                 break;
             case "species":
-                a.setSpecies(newInput);
+                anAnimal.setSpecies(typeID);
                 break;
             case "breed":
-                a.setBreed(newInput);
+                anAnimal.setBreed(newInput);
                 break;
             case "description":
-                a.setDescription(newInput);
+                anAnimal.setDescription(newInput);
                 break;
         }
-        persists();
+
+        PreparedStatement ps = conn.prepareStatement(
+                "UPDATE animal SET animal_name = ?," +
+                        "animal_type_id = ?," +
+                        "breed = ?," +
+                        "description = ?" +
+                        "WHERE animal_id = ?"
+        );
+
+        // set parameter values
+        ps.setString(1, anAnimal.getName());
+        ps.setInt(2, anAnimal.getSpecies());
+        ps.setString(3, anAnimal.getBreed());
+        ps.setString(4, anAnimal.getDescription());
+        ps.setInt(5, anAnimal.getID());
+
+        // execute the query
+        ps.executeUpdate();
+
     }
 }

@@ -1,8 +1,16 @@
-import entity.Animal;
+package entity;
 import org.junit.Before;
 import org.junit.Test;
+import repository.AnimalRepository;
+import repository.AnimalTypeRepository;
+import service.TypeService;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
+import static org.mockito.Mockito.mock;
 
 
 /**
@@ -11,10 +19,14 @@ import static org.hamcrest.MatcherAssert.*;
 public class AnimalTest {
 
     private Animal animal;
+    private AnimalTypeRepository mockAnimalTypeRepository;
 
     @Before
-    public void beforeEachTest() {
-        animal = new Animal("Coco", "Cat", "Tabby", "Adorable");
+    public void beforeEachTest() throws SQLException {
+
+        mockAnimalTypeRepository = mock(AnimalTypeRepository.class);
+        String jdbcUrl = "jdbc:postgresql://localhost:5432/animals";
+        animal = new Animal("Coco", 1, "Tabby", "Adorable", 0, new ArrayList<>(), new TypeService(mockAnimalTypeRepository));
     }
 
     @Test
@@ -60,13 +72,12 @@ public class AnimalTest {
      */
     public void whenSpeciesReceivedThenSetAnimalSpecies() {
         // Arrange
-        String species = "Cat";
 
         // Act
-        animal.setSpecies(species);
+        animal.setSpecies(1);
 
         // Assert
-        assertThat(animal.getSpecies(), equalTo(species));
+        assertThat(animal.getSpecies(), equalTo(1));
     }
 
     @Test
@@ -77,13 +88,12 @@ public class AnimalTest {
      */
     public void whenSpeciesReceivedThenGetAnimalSpecies() {
         // Arrange
-        animal.setSpecies("Cat");
+        animal.setSpecies(1);
 
         // Act
-        String returnedName = animal.getSpecies();
 
         // Assert
-        assertThat(returnedName, equalTo("Cat"));
+        assertThat(animal.getSpecies(), equalTo(1));
     }
 
     @Test
@@ -94,7 +104,7 @@ public class AnimalTest {
      */
     public void whenBreedReceivedThenSetAnimalBreed() {
         // Arrange
-        String breed = "Tabby";
+        String breed = "";
 
         // Act
         animal.setBreed(breed);
@@ -111,13 +121,13 @@ public class AnimalTest {
      */
     public void whenBreedReceivedThenGetAnimalBreed() {
         // Arrange
-        animal.setBreed("Tabby");
+        animal.setBreed("Parakeet");
 
         // Act
         String returnedName = animal.getBreed();
 
         // Assert
-        assertThat(returnedName, equalTo("Tabby"));
+        assertThat(returnedName, equalTo("Parakeet"));
     }
 
     @Test
@@ -128,7 +138,7 @@ public class AnimalTest {
      */
     public void whenDescriptionReceivedThenSetAnimalDescription() {
         // Arrange
-        String description = "Cute n' furry";
+        String description = "Cute!";
 
         // Act
         animal.setDescription(description);
@@ -145,13 +155,13 @@ public class AnimalTest {
      */
     public void whenDescriptionReceivedThenGetAnimalDescription() {
         // Arrange
-        animal.setDescription("Cute n' furry");
+        animal.setDescription("Small");
 
         // Act
         String returnedName = animal.getDescription();
 
         // Assert
-        assertThat(returnedName, equalTo("Cute n' furry"));
+        assertThat(returnedName, equalTo("Small"));
     }
 
 }
