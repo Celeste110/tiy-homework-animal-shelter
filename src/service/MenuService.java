@@ -225,6 +225,8 @@ public class MenuService {
     }
 
     public boolean manageAnimal() throws SQLException, IOException {
+        System.out.println("-- Manage an Animal --");
+        System.out.println("\nSearch for Animals:\n");
         System.out.println("1) Type");
         System.out.println("2) Name");
         System.out.println("3) ID");
@@ -265,26 +267,27 @@ public class MenuService {
                     System.out.println("\nThere are currently no animals of this type on file.");
                     return true;
                 } else {
-                    System.out.println("\n-- List of animals --");
-                    animals = service.getAnimalsByType(service.getTypeService().getTypeID(input), service.getNoteService());
+                    System.out.println("\n-- List of Animals --");
+                    animals = service.getAnimalsByType(service.getTypeService().getTypeID(input));
                     System.out.println("\nID\t| Name\t\t\t| Type");
                     System.out.println("--------------------------------------------");
                     for (Animal animal : animals) {
                         animalIDs.add(animal.getID());
                         animal.toAString();
                     }
+
                 }
-                break;
+                return animalDetails(animalIDs);
             case 2:
                 System.out.print("Animal name: ");
                 String name = reader.nextLine();
-                animals = service.getAnimalsByName(name, service.getNoteService());
+                animals = service.getAnimalsByName(name);
                 if (animals.size() == 0) {
                     System.out.println("Sorry! There are no animals named " + name);
                     System.out.println("Returning you to the main menu....");
                     return true;
                 } else {
-                    System.out.println("\n-- List of animals --");
+                    System.out.println("\n-- List of Animals --");
                     System.out.println("\nID\t| Name\t\t\t| Type");
                     System.out.println("--------------------------------------------");
                     animalIDs.clear();
@@ -293,22 +296,33 @@ public class MenuService {
                         animal.toAString();
                     }
                 }
-                break;
+                return animalDetails(animalIDs);
             case 3:
                 System.out.print("Animal ID: ");
                 int num = reader.nextInt();
-                System.out.println("\n-- List of animals --");
                 Animal animal = service.getAnimalById(num);
                 if (animal.getID() == -1) {
                     return true;
-                } else {
-                    System.out.println("\nID\t| Name\t\t\t| Type");
-                    System.out.println("--------------------------------------------");
-                    animal.toAString();
+                }
+                animals = service.listAnimals();
+                animalIDs.clear();
+                for (Animal anAnimal : animals) {
+                    animalIDs.add(anAnimal.getID());
+                }
+                System.out.println("\n-- Animal Details --\n");
+                System.out.println("Name: " + animal.getName());
+                System.out.println("Species: " + service.getTypeService().getType(animal.getSpecies()));
+                System.out.println("Breed: " + animal.getBreed());
+                System.out.println("Description: " + animal.getDescription());
+                System.out.println("Notes: ");
+                for (AnimalNotes note : animal.getNotes()) {
+
+                    if (note.getID() == animal.getID())
+                        System.out.println("\t" + note.getDate() + " - " + note.getText());
                 }
                 break;
             case 4:
-                System.out.println("-- List of animals --");
+                System.out.println("-- List of Animals --");
                 System.out.println("\nID\t| Name\t\t\t| Type");
                 System.out.println("--------------------------------------------");
                 animals = service.listAnimals();
@@ -317,15 +331,19 @@ public class MenuService {
                     animalIDs.add(anAnimal.getID());
                     anAnimal.toAString();
                 }
-                break;
+                return animalDetails(animalIDs);
             default:
                 System.out.println("Wrong input! Please choose a valid option (1-4):");
                 this.manageAnimal();
                 break;
         }
 
+        return true;
+    }
 
+    public boolean animalDetails(ArrayList<Integer> animalIDs) throws SQLException, IOException {
         System.out.print("\nWhich animal do you want to manage? ");
+        Scanner reader = new Scanner(System.in);
         int num = reader.nextInt();
         boolean isInList = false;
         for (Integer x : animalIDs) {
@@ -344,13 +362,12 @@ public class MenuService {
                 }
             }
         }
-
         Animal animal = service.getAnimalById(num);
 
         if (animal.getID() != -1) {
             System.out.println("\n-- Animal Details --\n");
             System.out.println("Name: " + animal.getName());
-            System.out.println("Species: " + animal.getSpecies());
+            System.out.println("Species: " + service.getTypeService().getType(animal.getSpecies()));
             System.out.println("Breed: " + animal.getBreed());
             System.out.println("Description: " + animal.getDescription());
             System.out.println("Notes: ");
@@ -359,31 +376,36 @@ public class MenuService {
                 if (note.getID() == animal.getID())
                     System.out.println("\t" + note.getDate() + " - " + note.getText());
             }
-
-            System.out.println("\nPlease select an option: \n");
-            System.out.println("1) Edit animal");
-            System.out.println("2) Delete animal");
-            System.out.println("3) Add note");
-            System.out.print("4) Return to main menu\n");
+        }
+        return prompt(animal, num);
+    }
 
 
-            System.out.print("\nWhat do you want to do? ");
-            int selection = reader.nextInt();
-            switch (selection) {
-                case 1:
-                    this.editAnimal(animal);
-                    break;
-                case 2:
-                    return deleteAnimal(num);
-                case 3:
-                    this.addNote(animal);
-                    return true;
-                case 4:
-                    return true;
-                default:
-                    System.out.println("Not a valid option. Returning you to the main menu...");
-                    break;
-            }
+    public boolean prompt(Animal animal, int num) throws IOException, SQLException {
+        System.out.println("\nPlease select an option: \n");
+        System.out.println("1) Edit animal");
+        System.out.println("2) Delete animal");
+        System.out.println("3) Add note");
+        System.out.print("4) Return to main menu\n");
+
+
+        System.out.print("\nWhat do you want to do? ");
+        Scanner reader = new Scanner(System.in);
+        int selection = reader.nextInt();
+        switch (selection) {
+            case 1:
+                this.editAnimal(animal);
+                break;
+            case 2:
+                return deleteAnimal(num);
+            case 3:
+                this.addNote(animal);
+                return true;
+            case 4:
+                return true;
+            default:
+                System.out.println("Not a valid option. Returning you to the main menu...");
+                break;
         }
         return true;
     }
@@ -463,7 +485,7 @@ public class MenuService {
         System.out.println("\nSuccess: The animal has been updated!\n");
 
         System.out.println("Name: " + animal.getName());
-        System.out.println("Species: " + animal.getSpecies());
+        System.out.println("Species: " + service.getTypeService().getType(animal.getSpecies()));
         System.out.println("Breed: " + animal.getBreed());
         System.out.println("Description: " + animal.getDescription());
     }

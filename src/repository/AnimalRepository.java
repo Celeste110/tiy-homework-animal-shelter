@@ -1,13 +1,9 @@
 package repository;
 
 import entity.Animal;
-import service.NoteService;
-import service.TypeService;
 
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-
 
 /**
  * Created by katherine_celeste on 8/20/16.
@@ -15,11 +11,9 @@ import java.util.ArrayList;
 public class AnimalRepository {
 
     private Connection conn;
-    private TypeService t;
 
-    public AnimalRepository(String jdbcUrl, TypeService t) throws SQLException {
+    public AnimalRepository(String jdbcUrl) throws SQLException {
         this.conn = DriverManager.getConnection(jdbcUrl);
-        this.t = t;
     }
 
     // This method returns a set of all animals
@@ -70,54 +64,12 @@ public class AnimalRepository {
         ps.executeUpdate();
     }
 
-    public ArrayList<Animal> getAnimalsByType(int typeID, NoteService noteService) throws SQLException {
-        ArrayList<Animal> animals = new ArrayList<>();
+    public ResultSet getResultSet() throws SQLException {
+
         ResultSet resultSet = this.listAnimal();
-
-        Animal anAnimal;
-
-        while (resultSet.next()) {
-            if (resultSet.getInt("animal_type_id") == typeID) {
-                anAnimal = new Animal(
-                        resultSet.getString("animal_name"),
-                        resultSet.getInt("animal_type_id"),
-                        resultSet.getString("breed"),
-                        resultSet.getString("description"),
-                        resultSet.getInt("animal_id"),
-                        noteService.listNotes(),
-                        t
-
-
-                );
-                animals.add(anAnimal);
-            }
-        }
-        return animals;
+        return resultSet;
     }
 
-    public ArrayList<Animal> getAnimalsByName(String name, NoteService noteService) throws SQLException {
-        ArrayList<Animal> animals = new ArrayList<>();
-        ResultSet resultSet = this.listAnimal();
-
-        Animal anAnimal = null;
-
-        while (resultSet.next()) {
-            if (resultSet.getString("animal_name").toLowerCase().contains(name.toLowerCase())) {
-                anAnimal = new Animal(
-                        resultSet.getString("animal_name"),
-                        resultSet.getInt("animal_type_id"),
-                        resultSet.getString("breed"),
-                        resultSet.getString("description"),
-                        resultSet.getInt("animal_id"),
-                        noteService.listNotes(),
-                        t
-
-                );
-                animals.add(anAnimal);
-            }
-        }
-        return animals;
-    }
 
     public void modifyAnimal(String property, String newInput, Animal anAnimal, int typeID) throws IOException, SQLException {
 

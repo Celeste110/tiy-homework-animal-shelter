@@ -77,12 +77,55 @@ public class AnimalsService {
         return placeHolder;
     }
 
-    public ArrayList<Animal> getAnimalsByType(int type, NoteService n) throws SQLException {
-        return animalRepository.getAnimalsByType(type, n);
+    public ArrayList<Animal> getAnimalsByType(int type) throws SQLException {
+        ResultSet resultSet = animalRepository.getResultSet();
+
+        ArrayList<Animal> animals = new ArrayList<>();
+
+        Animal anAnimal;
+
+        while (resultSet.next()) {
+            if (resultSet.getInt("animal_type_id") == type) {
+                anAnimal = new Animal(
+                        resultSet.getString("animal_name"),
+                        resultSet.getInt("animal_type_id"),
+                        resultSet.getString("breed"),
+                        resultSet.getString("description"),
+                        resultSet.getInt("animal_id"),
+                        noteService.listNotes(),
+                        this.typeService
+
+
+                );
+                animals.add(anAnimal);
+            }
+        }
+        return animals;
     }
 
-    public ArrayList<Animal> getAnimalsByName(String type, NoteService n) throws SQLException {
-        return animalRepository.getAnimalsByName(type, n);
+    public ArrayList<Animal> getAnimalsByName(String type) throws SQLException {
+        ResultSet resultSet = animalRepository.getResultSet();
+
+        ArrayList<Animal> animals = new ArrayList<>();
+
+        Animal anAnimal = null;
+
+        while (resultSet.next()) {
+            if (resultSet.getString("animal_name").toLowerCase().contains(type.toLowerCase())) {
+                anAnimal = new Animal(
+                        resultSet.getString("animal_name"),
+                        resultSet.getInt("animal_type_id"),
+                        resultSet.getString("breed"),
+                        resultSet.getString("description"),
+                        resultSet.getInt("animal_id"),
+                        noteService.listNotes(),
+                        typeService
+
+                );
+                animals.add(anAnimal);
+            }
+        }
+        return animals;
     }
 
     public void modifyAnimal(String property, String newInput, Animal animal) throws SQLException {

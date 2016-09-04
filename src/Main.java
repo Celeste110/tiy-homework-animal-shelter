@@ -23,7 +23,7 @@ public class Main {
         AnimalTypeRepository animalTypeRepository = new AnimalTypeRepository(jdbcUrl);
         TypeService typeService = new TypeService(animalTypeRepository);
 
-        AnimalRepository animalRepository = new AnimalRepository(jdbcUrl, typeService);
+        AnimalRepository animalRepository = new AnimalRepository(jdbcUrl);
 
         MenuService menu = new MenuService(new AnimalsService(animalRepository, noteService, typeService));
 
